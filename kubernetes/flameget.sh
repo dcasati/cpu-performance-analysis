@@ -79,7 +79,7 @@ flamegraph(){
     done
 
     #get the svg
-    kubectl cp ${bpfprofilername}:/work/${BPF_TOOLS_CONTAINER}.svg ./${BPF_TOOLS_CONTAINER}.svg 2>/dev/null
+    kubectl cp ${bpfprofilername}:/root/work/${BPF_TOOLS_CONTAINER}.svg ./${BPF_TOOLS_CONTAINER}.svg 2>/dev/null
     echo "created ${BPF_TOOLS_CONTAINER}.svg"
 
     kubectl delete po $bpfprofilername

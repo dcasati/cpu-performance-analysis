@@ -11,14 +11,23 @@ spec:
     securityContext:
       privileged: true
     command:
+    - nsenter
+    - --target
+    - "1"
+    - --mount
+    - --uts
+    - --ipc
+    - --net
+    - --pid
+    - --
     - "/bin/bash"
     - "-c"
     - |-
-      BPF_TOOLS_CONTAINERID=$(docker ps | grep k8s_${BPF_TOOLS_CONTAINER}_${BPF_TOOLS_POD} | awk '{print $1}')
-      BPF_TOOLS_PID=$(docker inspect $BPF_TOOLS_CONTAINERID --format '{{ .State.Pid }}')
+      BPF_TOOLS_CONTAINERID=$(crictl ps | grep ${BPF_TOOLS_CONTAINER} | awk '{print $1}')
+      BPF_TOOLS_PID=$(crictl inspect --output go-template --template '{{.info.pid}}' $BPF_TOOLS_CONTAINERID)
       echo "profiling pid $BPF_TOOLS_PID for seconds $BPF_TOOLS_SECONDS"
       BPF_TOOLS_SECONDS=$(echo $BPF_TOOLS_SECONDS | sed s/\"//g)
-      ./bcc/tools/profile.py -dF 99 -f $BPF_TOOLS_SECONDS -p $BPF_TOOLS_PID | ./FlameGraph/flamegraph.pl > ${BPF_TOOLS_CONTAINER}.svg
+      /root/work/bcc/tools/profile.py -dF 99 -f $BPF_TOOLS_SECONDS -p $BPF_TOOLS_PID | /root/work/FlameGraph/flamegraph.pl > /root/work/${BPF_TOOLS_CONTAINER}.svg
       echo "profiling complete"
       sleep 30s #gives our script chance to copy out the flamegraph
     env:
@@ -29,8 +38,6 @@ spec:
     - name: BPF_TOOLS_CONTAINER
       value: {{BPF_TOOLS_CONTAINER}}
     volumeMounts:
-      - mountPath: /var/run/docker.sock
-        name: docker
       - mountPath: /sys/kernel/debug
         name: kernel-debug
       - mountPath: /sys/fs/cgroup
@@ -42,9 +49,6 @@ spec:
   imagePullSecrets:
   - name: registrykey
   volumes:
-    - name: docker
-      hostPath: 
-        path: /var/run/docker.sock
     - name: kernel-debug
       hostPath:
         path: /sys/kernel/debug
@@ -54,3 +58,4 @@ spec:
     - name: fs-bpf
       hostPath:
         path: /sys/fs/bpf
+
