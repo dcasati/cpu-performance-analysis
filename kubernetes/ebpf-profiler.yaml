@@ -14,7 +14,6 @@ spec:
     - nsenter
     - --target
     - "1"
-    - --mount
     - --uts
     - --ipc
     - --net
@@ -27,7 +26,7 @@ spec:
       BPF_TOOLS_PID=$(crictl inspect --output go-template --template '{{.info.pid}}' $BPF_TOOLS_CONTAINERID)
       echo "profiling pid $BPF_TOOLS_PID for seconds $BPF_TOOLS_SECONDS"
       BPF_TOOLS_SECONDS=$(echo $BPF_TOOLS_SECONDS | sed s/\"//g)
-      /root/work/bcc/tools/profile.py -dF 99 -f $BPF_TOOLS_SECONDS -p $BPF_TOOLS_PID | /root/work/FlameGraph/flamegraph.pl > /root/work/${BPF_TOOLS_CONTAINER}.svg
+      profile-bpfcc -dF 99 -f $BPF_TOOLS_SECONDS -p $BPF_TOOLS_PID | /flamegraph.pl > /${BPF_TOOLS_CONTAINER}.svg
       echo "profiling complete"
       sleep 30s #gives our script chance to copy out the flamegraph
     env:
@@ -44,6 +43,8 @@ spec:
         name: fs-cgroup
       - mountPath: /sys/fs/bpf
         name: fs-bpf
+      - mountPath: /run/containerd
+        name: run-containerd
   nodeSelector:
     kubernetes.io/hostname: {{BPF_TOOLS_NODE}} # you can bind to a specific agent
   imagePullSecrets:
@@ -58,4 +59,7 @@ spec:
     - name: fs-bpf
       hostPath:
         path: /sys/fs/bpf
+    - name: run-containerd
+      hostPath:
+        path: /run/containerd
 
