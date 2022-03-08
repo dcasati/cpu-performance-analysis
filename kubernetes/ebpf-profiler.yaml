@@ -6,7 +6,7 @@ spec:
   hostPID: true
   containers:
   - name: ebpf-profiler
-    image: {{BPF_TOOLS_IMAGE}}
+    image: {{PROFILER_IMAGE}}
     imagePullPolicy: Always
     securityContext:
       privileged: true
@@ -18,24 +18,26 @@ spec:
     - --ipc
     - --net
     - --pid
+    - --cgroup
     - --
     - "/bin/bash"
     - "-c"
     - |-
-      BPF_TOOLS_CONTAINERID=$(crictl ps | grep ${BPF_TOOLS_CONTAINER} | awk '{print $1}')
-      BPF_TOOLS_PID=$(crictl inspect --output go-template --template '{{.info.pid}}' $BPF_TOOLS_CONTAINERID)
-      echo "profiling pid $BPF_TOOLS_PID for seconds $BPF_TOOLS_SECONDS"
-      BPF_TOOLS_SECONDS=$(echo $BPF_TOOLS_SECONDS | sed s/\"//g)
-      profile-bpfcc -dF 99 -f $BPF_TOOLS_SECONDS -p $BPF_TOOLS_PID | /flamegraph.pl > /${BPF_TOOLS_CONTAINER}.svg
+      export CONTAINER_RUNTIME_ENDPOINT=unix:///run/containerd/containerd.sock
+      TARGET_CONTAINER_ID=$(crictl ps | grep ${TARGET_CONTAINER} | awk '{print $1}')
+      TARGET_CONTAINER_PID=$(crictl inspect --output go-template --template '{{.info.pid}}' $TARGET_CONTAINER_ID)
+      echo "profiling pid $TARGET_CONTAINER_PID for seconds $SAMPLING_PERIOD"
+      SAMPLING_PERIOD=$(echo $SAMPLING_PERIOD | sed s/\"//g)
+      profile-bpfcc -dF 99 -f $SAMPLING_PERIOD -p $TARGET_CONTAINER_PID | tee ${TARGET_CONTAINER}.perf |/flamegraph.pl > /${TARGET_CONTAINER}.svg
       echo "profiling complete"
       sleep 30s #gives our script chance to copy out the flamegraph
     env:
-    - name: BPF_TOOLS_SECONDS
-      value: "{{BPF_TOOLS_SECONDS}}"
-    - name: BPF_TOOLS_POD
-      value: {{BPF_TOOLS_POD}}
-    - name: BPF_TOOLS_CONTAINER
-      value: {{BPF_TOOLS_CONTAINER}}
+    - name: SAMPLING_PERIOD
+      value: "{{SAMPLING_PERIOD}}"
+    - name: TARGET_POD
+      value: {{TARGET_POD}}
+    - name: TARGET_CONTAINER
+      value: {{TARGET_CONTAINER}}
     volumeMounts:
       - mountPath: /sys/kernel/debug
         name: kernel-debug
@@ -46,7 +48,7 @@ spec:
       - mountPath: /run/containerd
         name: run-containerd
   nodeSelector:
-    kubernetes.io/hostname: {{BPF_TOOLS_NODE}} # you can bind to a specific agent
+    kubernetes.io/hostname: {{AKS_NODE}}
   imagePullSecrets:
   - name: registrykey
   volumes:
