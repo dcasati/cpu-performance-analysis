@@ -40,12 +40,12 @@ usage() {
 }
 
 do_create_profiler_pod() {
-  cat ebpf-profiler.yaml |
-    sed 's@{{PROFILER_IMAGE}}@'"$_PROFILER_IMAGE"'@' |
-    sed 's@{{TARGET_POD}}@'"$_TARGET_POD"'@' |
-    sed 's@{{SAMPLING_PERIOD}}@'"$_SAMPLING_PERIOD"'@' |
-    sed 's@{{TARGET_CONTAINER}}@'"$_TARGET_CONTAINER"'@' |
-    sed 's@{{AKS_NODE}}@'"$_AKS_NODE"'@' | tee output.yaml |
+    sed \
+     's@{{PROFILER_IMAGE}}@'"$_PROFILER_IMAGE"'@ 
+      s@{{TARGET_POD}}@'"$_TARGET_POD"'@
+      s@{{SAMPLING_PERIOD}}@'"$_SAMPLING_PERIOD"'@
+      s@{{TARGET_CONTAINER}}@'"$_TARGET_CONTAINER"'@
+      s@{{AKS_NODE}}@'"$_AKS_NODE"'@' ebpf-profiler.yaml |
     kubectl apply -f -
 }
 
