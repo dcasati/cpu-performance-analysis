@@ -24,7 +24,7 @@ spec:
     - "-c"
     - |-
       export CONTAINER_RUNTIME_ENDPOINT=unix:///run/containerd/containerd.sock
-      TARGET_CONTAINER_ID=$(crictl ps | grep ${TARGET_CONTAINER} | awk '{print $1}')
+      TARGET_CONTAINER_ID=$(crictl ps | awk "/${TARGET_CONTAINER}/{print $1}")
       TARGET_CONTAINER_PID=$(crictl inspect --output go-template --template '{{.info.pid}}' $TARGET_CONTAINER_ID)
       echo "profiling pid $TARGET_CONTAINER_PID for seconds $SAMPLING_PERIOD"
       SAMPLING_PERIOD=$(echo $SAMPLING_PERIOD | sed s/\"//g)
@@ -47,6 +47,12 @@ spec:
         name: fs-bpf
       - mountPath: /run/containerd
         name: run-containerd
+      - mountPath: /usr/src
+        name: usr-src
+      - mountPath:  /usr/local/bin 
+        name: usr-local-bin
+      - mountPath: /lib/modules
+        name: lib-modules
   nodeSelector:
     kubernetes.io/hostname: {{AKS_NODE}}
   imagePullSecrets:
@@ -64,4 +70,13 @@ spec:
     - name: run-containerd
       hostPath:
         path: /run/containerd
+    - name: usr-src
+      hostPath:
+        path: /usr/src
+    - name: usr-local-bin
+      hostPath:
+        path: /usr/local/bin
+    - name: lib-modules
+      hostPath:
+        path: /lib/modules
 
